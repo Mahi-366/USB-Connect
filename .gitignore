@@ -1,0 +1,17 @@
+# Maven build output
+target/
+
+# IntelliJ
+.idea/
+*.iml
+out/
+
+# Local credentials - never commit
+config.properties
+
+# Test artifacts (screenshots / traces)
+test-results/
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,15 @@
+# Copy this file to "config.properties" (same folder) and fill in your values.
+# config.properties is ignored by git so your password is never pushed to GitHub.
+
+base.url=https://usbaconnect.usbair.com
+login.email=YOUR_EMAIL_HERE
+login.password=YOUR_PASSWORD_HERE
+
+# Test data
+group.name=Test
+contact.name=Md Mahi Sarkar
+template.name=updated_flight_schedule
+template.parameter=Mahi
+
+# true = no browser window, false = watch the browser
+headless=false
