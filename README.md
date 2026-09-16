@@ -146,15 +146,27 @@ It should finish with a line like `2026-09-16 09:00  PASS  PASS - status: Read`.
 
 ### Create the hourly schedule
 
-Run this **once**, in the same PowerShell window (all one line):
+In the project folder, run:
 
 ```powershell
-schtasks /Create /TN "USBA Connect hourly test" /SC HOURLY /ST 09:00 /F /TR "powershell.exe -ExecutionPolicy Bypass -WindowStyle Hidden -File \"$PWD\run-hourly.ps1\""
+.\setup-task.ps1
 ```
 
-- `/ST 09:00` is the first run of the day. It then repeats every hour.
+That creates a task named **USBA Connect hourly test**: first run 2 minutes from now, then every hour.
+To start at a fixed time instead, use `.\setup-task.ps1 -StartAt 09:00`.
+
 - The task only runs while the laptop is on and you are logged in.
 - Runs happen in the background with no browser window, because the script uses `-Dheadless=true`.
+
+### Check that the schedule is working
+
+```powershell
+.\setup-task.ps1 -Status     # last run, result, next run, and the last 5 results
+.\setup-task.ps1 -RunNow     # run it right now instead of waiting
+```
+
+`Last result` meanings: **0** = test passed, **1** = test ran and failed (see `logs\summary.log`),
+**267011** = has not run yet, **2147942401** = the script could not start (usually a wrong path).
 
 ### Where the updates are
 
@@ -171,11 +183,12 @@ The `logs` folder is ignored by git, so it never gets pushed.
 ### Manage the schedule
 
 ```powershell
-schtasks /Query  /TN "USBA Connect hourly test"        # see the next run time
-schtasks /Run    /TN "USBA Connect hourly test"        # run right now
-schtasks /Change /TN "USBA Connect hourly test" /DISABLE   # pause (for example, at night)
-schtasks /Change /TN "USBA Connect hourly test" /ENABLE    # resume
-schtasks /Delete /TN "USBA Connect hourly test" /F      # remove completely
+.\setup-task.ps1 -Status                                   # next run + last 5 results
+.\setup-task.ps1 -RunNow                                   # run right now
+.\setup-task.ps1 -Remove                                   # remove completely
+.\setup-task.ps1 -StartAt 09:00                            # change the start time
+schtasks /Change /TN "USBA Connect hourly test" /DISABLE    # pause (for example, at night)
+schtasks /Change /TN "USBA Connect hourly test" /ENABLE     # resume
 ```
 
 You can also find it in the **Task Scheduler** app under **Task Scheduler Library**.
