@@ -18,6 +18,19 @@ $ErrorActionPreference = 'Stop'
 $taskName = 'USBA Connect hourly test'
 $scriptPath = Join-Path $PSScriptRoot 'run-hourly.ps1'
 
+function Get-ResultText([long] $code) {
+    switch ($code) {
+        0          { 'passed' }
+        1          { 'ran, but the test failed - see logs\summary.log' }
+        267009     { 'running right now' }
+        267011     { 'has not run yet' }
+        267014     { 'was stopped (time limit or stopped by hand)' }
+        2147946720 { 'skipped - the previous run was still going' }
+        2147942401 { 'could not start - script not found' }
+        default    { 'code ' + $code + ' (0x' + ('{0:X}' -f $code) + ')' }
+    }
+}
+
 function Show-Status {
     $task = Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
     if (-not $task) {
@@ -25,11 +38,17 @@ function Show-Status {
         return
     }
     $info = $task | Get-ScheduledTaskInfo
+    $lastRun = if ($info.LastRunTime -and $info.LastRunTime.Year -gt 2000) {
+        $info.LastRunTime.ToString('yyyy-MM-dd HH:mm')
+    } else {
+        'never'
+    }
+
     Write-Host ''
     Write-Host "Task       : $taskName"
     Write-Host "State      : $($task.State)"
-    Write-Host "Last run   : $($info.LastRunTime)"
-    Write-Host "Last result: $($info.LastTaskResult)  (0 = passed, 1 = test failed, 267011 = has not run yet)"
+    Write-Host "Last run   : $lastRun"
+    Write-Host "Last result: $(Get-ResultText $info.LastTaskResult)"
     Write-Host "Next run   : $($info.NextRunTime)"
 
     $summary = Join-Path $PSScriptRoot 'logs\summary.log'
@@ -67,8 +86,11 @@ $action = New-ScheduledTaskAction -Execute 'powershell.exe' `
 
 $trigger = New-ScheduledTaskTrigger -Once -At $StartAt -RepetitionInterval (New-TimeSpan -Hours $IntervalHours)
 
+# WakeToRun: wake a sleeping laptop for the run, so the hourly times stay regular.
+# ExecutionTimeLimit 15 min: kill a stuck run, so it cannot block the next hour.
 $settings = New-ScheduledTaskSettingsSet -StartWhenAvailable -AllowStartIfOnBatteries `
-    -DontStopIfGoingOnBatteries -ExecutionTimeLimit (New-TimeSpan -Minutes 30) -MultipleInstances IgnoreNew
+    -DontStopIfGoingOnBatteries -WakeToRun -ExecutionTimeLimit (New-TimeSpan -Minutes 15) `
+    -MultipleInstances IgnoreNew
 
 Register-ScheduledTask -TaskName $taskName -Action $action -Trigger $trigger -Settings $settings `
     -Description 'Runs the USBA Connect send-message automation test every hour.' -Force | Out-Null

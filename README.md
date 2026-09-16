@@ -158,12 +158,39 @@ To start at a fixed time instead, use `.\setup-task.ps1 -StartAt 09:00`.
 - The task only runs while the laptop is on and you are logged in.
 - Runs happen in the background with no browser window, because the script uses `-Dheadless=true`.
 
-### Check that the schedule is working
+### Keep an eye on it without typing commands
+
+```powershell
+.\watch-status.ps1
+```
+
+This opens a small always-on-top window: **green = WORKING**, **red = FAILING**, plus the next run time
+and the recent runs. It refreshes itself every minute, so you can leave it in a corner of your screen
+and just glance at it. Close it any time; it does not affect the schedule.
+
+### Check the schedule from the terminal
 
 ```powershell
 .\setup-task.ps1 -Status     # last run, result, next run, and the last 5 results
 .\setup-task.ps1 -RunNow     # run it right now instead of waiting
 ```
+
+`Last result` is shown in plain words. The common ones:
+
+| Meaning | What to do |
+|---|---|
+| passed | Nothing, your system is fine |
+| ran, but the test failed | Open `logs\summary.log` for the reason |
+| running right now | Wait a minute and check again |
+| skipped - the previous run was still going | A run got stuck; it is cut off after 15 minutes so the next hour is not blocked |
+| has not run yet | Wait for the next run time |
+
+### Why runs are not exactly on the hour
+
+Windows only runs the task while the laptop is awake. If it sleeps or hibernates at the scheduled
+minute, the run happens late, when the laptop wakes up. The task asks Windows to wake the laptop
+(`-WakeToRun`), but many laptops ignore that on battery or when the lid is closed. So treat the
+schedule as "about every hour", not to the exact minute.
 
 `Last result` meanings: **0** = test passed, **1** = test ran and failed (see `logs\summary.log`),
 **267011** = has not run yet, **2147942401** = the script could not start (usually a wrong path).
