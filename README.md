@@ -128,6 +128,62 @@ Any setting can also be given on the command line (`-Dheadless=true`) or as an e
 | `Message status is Failed. WhatsApp error: 131047 Re-engagement message…` | The website is working, but WhatsApp refused the message because the contact has not replied in the last 24 hours. From **Md Mahi Sarkar's** WhatsApp, send any message (for example "Hi") to the business number, then run the test again. |
 | Test fails at "No matching option…" | The group, contact or template name changed on the website. The error lists the available names, so update `config.properties` to match. |
 
+## Run the test automatically every hour (Windows)
+
+`run-hourly.ps1` runs the test once, writes a log, and shows a desktop notification with the result.
+Windows Task Scheduler repeats it every hour. Maven does not need to be installed, because the project
+includes the Maven wrapper (`mvnw.cmd`).
+
+### Try the script once by hand first
+
+Open PowerShell in the project folder (in IntelliJ: **View → Tool Windows → Terminal**) and run:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\run-hourly.ps1
+```
+
+It should finish with a line like `2026-09-16 09:00  PASS  PASS - status: Read`.
+
+### Create the hourly schedule
+
+Run this **once**, in the same PowerShell window (all one line):
+
+```powershell
+schtasks /Create /TN "USBA Connect hourly test" /SC HOURLY /ST 09:00 /F /TR "powershell.exe -ExecutionPolicy Bypass -WindowStyle Hidden -File \"$PWD\run-hourly.ps1\""
+```
+
+- `/ST 09:00` is the first run of the day. It then repeats every hour.
+- The task only runs while the laptop is on and you are logged in.
+- Runs happen in the background with no browser window, because the script uses `-Dheadless=true`.
+
+### Where the updates are
+
+| What | Where |
+|---|---|
+| Result of the newest run | `logs\latest-status.txt` |
+| One line per run, whole history | `logs\summary.log` |
+| Full output of one run | `logs\run-<date>-<time>.log` |
+| Screenshot of the last screen | `test-results\sendMessageAndCheckHistory.png` |
+| Pop-up on your desktop | after every run |
+
+The `logs` folder is ignored by git, so it never gets pushed.
+
+### Manage the schedule
+
+```powershell
+schtasks /Query  /TN "USBA Connect hourly test"        # see the next run time
+schtasks /Run    /TN "USBA Connect hourly test"        # run right now
+schtasks /Change /TN "USBA Connect hourly test" /DISABLE   # pause (for example, at night)
+schtasks /Change /TN "USBA Connect hourly test" /ENABLE    # resume
+schtasks /Delete /TN "USBA Connect hourly test" /F      # remove completely
+```
+
+You can also find it in the **Task Scheduler** app under **Task Scheduler Library**.
+
+> ⚠️ Each run sends a real WhatsApp message, and Meta charges for MARKETING templates.
+> Hourly means about 24 messages a day. Also, if Md Mahi Sarkar has not replied in the last 24 hours,
+> the runs fail with error `131047` even when your system is healthy.
+
 ## Project structure
 
 ```

@@ -12,6 +12,9 @@ config.properties
 # Test artifacts (screenshots / traces)
 test-results/
 
+# Logs from the hourly scheduled runs
+logs/
+
 # OS
 .DS_Store
 Thumbs.db
